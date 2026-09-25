@@ -1,8 +1,7 @@
 # Custom MD-CLI Command: `show router mpls list-binding-sid`
 
-**Author / Maintainer**: Network Engineering Automation  
 **Target Platform**: Nokia SR OS (7750 SR, 7950 XRS, 7250 IXR)  
-**Supported Releases**: SR OS 21.x – 26.x (Validated and tested on **SR OS Release 26.3.R1** / TiMOS-26.3.R1)  
+**Supported Releases**: (Validated and tested on **SR OS Release 26.3.R1** / TiMOS-26.3.R1)  
 **Engine**: On-box pySROS / MicroPython 3.4 & Model-Driven CLI (MD-CLI)  
 
 ---
@@ -35,7 +34,7 @@ It delivers:
 
 ### Live Command Execution Example
 
-Below is the live output captured directly from **R2** (7750 SR-1s running SR OS 26.3.R1):
+Below is the live output captured directly from example **R2** (7750 SR-1s running SR OS 26.3.R1):
 
 ```text
 [/]
@@ -56,22 +55,6 @@ Binding-SID   Type                    Name / Identifier                      End
 Summary: Total Binding-SIDs: 7 | Operational (Up): 5 | Non-Operational (Down): 2
 ```
 
-Below is another example captured from **R1** (7750 SR-1 running SR OS 26.3.R1):
-
-```text
-[/]
-A:admin@R1# show router mpls list-binding-sid
-=================================================================================================================
-YANG State Binding-SID Inventory (Router: Base)
-=================================================================================================================
-Binding-SID   Type                    Name / Identifier                      Endpoint         Operational   Hops  
------------------------------------------------------------------------------------------------------------------
-24005         SR-Policy (STATIC)      test-policy-wouter [Color 101]         192.0.2.6        Up            1     
-24242         SR-Policy (BGP)         Policy [Color 100]                     192.0.2.6        Up            3     
-=================================================================================================================
-Summary: Total Binding-SIDs: 2 | Operational (Up): 2 | Non-Operational (Down): 0
-```
-
 ---
 
 ### Output Fields Specification
@@ -87,39 +70,6 @@ Summary: Total Binding-SIDs: 2 | Operational (Up): 2 | Non-Operational (Down): 0
 | **`Summary`** | Tally Bar | Aggregates the total count of Binding-SIDs and breaks down the number of operational (`Up`) versus faulted (`Down`) paths. |
 
 ---
-
-## 3. Architecture & YANG Datastore Modeling
-
-The script interacts directly with the SR OS YANG state datastore via the embedded `pysros.management.connect()` API. No external network connections, sockets, or off-box orchestrators are required.
-
-```
-                      +---------------------------------------+
-                      |       MD-CLI Operator Session         |
-                      |  # show router mpls list-binding-sid  |
-                      +---------------------------------------+
-                                          |
-                                          v  (command-alias)
-                      +---------------------------------------+
-                      |         pyexec list-binding-sid       |
-                      +---------------------------------------+
-                                          |
-                                          v
-                      +---------------------------------------+
-                      |   check_binding_sids.py (pySROS)      |
-                      +---------------------------------------+
-                                    |           |
-            +-----------------------+           +-----------------------+
-            v                                                           v
-  +--------------------+                                      +--------------------+
-  |    nokia-state     |                                      |    nokia-conf      |
-  |  State Datastore   |                                      |  Config Datastore  |
-  +--------------------+                                      +--------------------+
-  | • mpls/lsp         |                                      | • mpls/lsp/to      |
-  | • actual-route-hops|                                      | • sr-policies/     |
-  | • sr-policies/     |                                      |   static-policy    |
-  |   sr-path          |                                      +--------------------+
-  +--------------------+
-```
 
 ### YANG Paths Queried
 
@@ -222,19 +172,6 @@ admin save
 
 ---
 
-## 5. Compatibility & Engineering Guardrails
-
-### 1. SR OS Release Support
-- **SR OS 26.x (Tested on 26.3.R1)**: Native compatibility.
-- **SR OS 22.x – 25.x**: Supported out of the box with `pysros` module.
-- **SR OS 21.x**: Supported on builds with on-box Python 3 enabled.
-
-### 2. On-Box Python 3.4 Runtime Invariant
-The embedded CPM execution environment runs **MicroPython / Python 3.4.0**:
-- **No Python 3.5+ Syntax**: Do **not** use f-strings (`f"..."`) or `async`/`await`. All formatting uses `.format()` or `%`.
-- **Zero External Modules**: The environment does not bundle `argparse`, `socket`, `requests`, or third-party packages. The script is strictly self-contained, using `pysros.management`, `pysros.pprint.Table`, and `sys`.
-- **IP Address Unpacking**: Decoding IP addresses from binary/hex identifiers is implemented with pure string slicing (`int(hex, 16)`), avoiding dependence on missing C-extension libraries.
-
 ### 3. Model-Driven Mode Prerequisite
 Command aliases require the node management interface to operate in pure model-driven mode:
 ```sros
@@ -252,14 +189,4 @@ system {
 
 ---
 
-## 6. Verification and Troubleshooting Checklist
-
-| Symptom | Cause | Remediation |
-| :--- | :--- | :--- |
-| `MINOR: CLI #2001: Unknown element - 'list-binding-sid'` | Alias was committed in current session but session cache has not refreshed. | Log out and start a fresh MD-CLI session (`exit` and re-SSH), or run `pyexec list-binding-sid`. |
-| `MINOR: MGMT_CORE #4001: Command alias is only supported...` | Router is running in `mixed` configuration mode. | Switch to model-driven mode: `/configure system management-interface configuration-mode model-driven`, commit, and re-apply alias. |
-| `Error: pySROS library is not available` | Executed under standard Linux python without the `pysros` wheel installed. | Run on-box via `pyexec list-binding-sid` or install `pip install pysros` on your off-box automation host. |
-| `Empty table / 0 Binding-SIDs` | No SR-TE LSPs or SR Policies have an allocated Binding-SID in the `Base` router. | Verify underlay Segment Routing configuration and confirm that `binding-sid` is configured under `mpls lsp` or `sr-policies`. |
-
----
 

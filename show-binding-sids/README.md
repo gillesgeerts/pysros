@@ -183,10 +183,4 @@ system {
 ```
 *If a router is configured in `configuration-mode mixed`, attempting to commit a `command-alias` triggers `MINOR: MGMT_CORE #4001: Command alias is only supported in model-driven configuration mode`.*
 
-### 4. Hardware Platform Scope
-- **Fully Supported**: 7750 SR (all variants: SR-1, SR-1s, SR-7, SR-12, SR-14s, SR-1x), 7950 XRS, 7250 IXR (IXR-s, IXR-e, IXR-R6, IXR-x).
-- **Not Supported**: 7705 SAR platforms (SAR OS / SAR-1) do not embed the on-box pySROS Python execution engine.
-
----
-
 
